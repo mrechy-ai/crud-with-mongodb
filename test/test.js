@@ -2,14 +2,40 @@ const Blog = require("../models/blog");
 const chai = require("chai");
 const chaiHttp = require("chai-http");
 const app = require("../app");
+const mongoose = require("mongoose");
 
 chai.use(chaiHttp);
 chai.should();
 
 describe("Blogs API", () => {
+  // Wait for MongoDB connection before running tests
+  before(async function() {
+    this.timeout(15000); // Increase timeout for connection
+    
+    // Wait for mongoose to connect
+    if (mongoose.connection.readyState === 0) {
+      await new Promise((resolve, reject) => {
+        mongoose.connection.on('connected', resolve);
+        mongoose.connection.on('error', reject);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => reject(new Error('MongoDB connection timeout')), 10000);
+      });
+    }
+    
+    console.log('✅ MongoDB connected for testing');
+  });
+
   // Clear DB before each test
-  beforeEach(async () => {
+  beforeEach(async function() {
+    this.timeout(5000);
     await Blog.deleteMany({});
+  });
+
+  // Close connection after all tests
+  after(async function() {
+    await mongoose.connection.close();
+    console.log('✅ MongoDB connection closed');
   });
 
   // GET all blogs
